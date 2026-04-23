@@ -1,0 +1,4 @@
+cd "/Users/bennymorant/Claude Projects/missionboard"
+git init
+git add .
+git commit -m "Initial MissionBoard"
