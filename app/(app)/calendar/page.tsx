@@ -1,15 +1,14 @@
 'use client'
 import { useMemo } from 'react'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
-import { format, parse, startOfWeek, getDay } from 'date-fns'
+import { format, parse, startOfWeek, getDay, parseISO, isValid } from 'date-fns'
 import { enUS } from 'date-fns/locale/en-US'
 import { useGrants } from '@/lib/queries/grants'
 import { useProjects } from '@/lib/queries/projects'
-import { useBoardData } from '@/lib/queries/tasks'
+import { useAllTasksDue } from '@/lib/queries/tasks'
 import type { CalendarEvent } from '@/types/app'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { parseISO, isValid } from 'date-fns'
 
 const localizer = dateFnsLocalizer({
   format,
@@ -19,23 +18,37 @@ const localizer = dateFnsLocalizer({
   locales: { 'en-US': enUS },
 })
 
-function AllProjectsTasks() {
-  const { data: projects } = useProjects()
-  return projects ?? []
+const PRIORITY_COLORS: Record<string, string> = {
+  urgent: '#dc2626',
+  high:   '#f97316',
+  medium: '#6366f1',
+  low:    '#6b7280',
 }
 
 export default function CalendarPage() {
-  const { data: grants, isLoading: grantsLoading } = useGrants()
+  const { data: grants,   isLoading: grantsLoading   } = useGrants()
   const { data: projects, isLoading: projectsLoading } = useProjects()
+  const { data: dueTasks, isLoading: tasksLoading    } = useAllTasksDue()
 
-  // We can only call hooks at the top level. For calendar we'll do a simplified approach:
-  // fetch tasks for the first project as a demo, and show grants deadlines from all.
-  // A real app would fetch all tasks — this is fine for a nonprofit with a few projects.
-
-  const loading = grantsLoading || projectsLoading
+  const loading = grantsLoading || projectsLoading || tasksLoading
 
   const events = useMemo((): CalendarEvent[] => {
     const result: CalendarEvent[] = []
+
+    // Task due dates
+    dueTasks?.forEach(task => {
+      const d = parseISO(task.due_date!)
+      if (!isValid(d)) return
+      const proj = Array.isArray(task.project) ? task.project[0] : task.project as { id: string; name: string; color: string } | null
+      result.push({
+        id: `task-${task.id}`,
+        title: `✅ ${task.title}${proj ? ` · ${proj.name}` : ''}`,
+        start: d,
+        end: d,
+        type: 'task',
+        color: PRIORITY_COLORS[task.priority] ?? '#6366f1',
+      })
+    })
 
     // Grant deadlines
     grants?.forEach(grant => {
@@ -87,7 +100,7 @@ export default function CalendarPage() {
     })
 
     return result
-  }, [grants, projects])
+  }, [grants, projects, dueTasks])
 
   if (loading) return <LoadingSpinner />
 
@@ -95,7 +108,15 @@ export default function CalendarPage() {
     <div className="p-6 h-full flex flex-col">
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Grant deadlines and project milestones</p>
+        <p className="text-sm text-gray-500 mt-0.5">Task due dates, grant deadlines, and project milestones</p>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 mb-4 text-xs text-gray-600">
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" />Task (medium)</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />Task (high)</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-600 inline-block" />Task (urgent) / Grant deadline</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-gray-500 inline-block" />Task (low)</span>
       </div>
 
       <div className="flex-1 bg-white rounded-xl border border-gray-200 p-4 min-h-[500px] calendar-container">

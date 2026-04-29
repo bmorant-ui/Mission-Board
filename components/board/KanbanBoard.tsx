@@ -18,7 +18,7 @@ import { TaskDetailModal } from './TaskDetailModal'
 import { useBoardData, useMoveTask, useCreateColumn } from '@/lib/queries/tasks'
 import { useRealtimeBoard } from '@/hooks/useRealtimeBoard'
 import type { Task, BoardData } from '@/types/app'
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { SkeletonBoard } from '@/components/shared/Skeleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Loader2 } from 'lucide-react'
@@ -114,7 +114,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     }
   }
 
-  if (isLoading) return <LoadingSpinner />
+  if (isLoading) return <SkeletonBoard />
   if (!board) return null
 
   const columnIds = board.columns.map(c => c.id)
@@ -128,7 +128,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
       >
-        <div className="flex gap-4 p-4 overflow-x-auto h-full items-start pb-8">
+        <div className="flex gap-4 p-4 overflow-x-auto h-full items-start pb-8 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent" style={{ WebkitOverflowScrolling: 'touch' }}>
           <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
             {board.columns.map(column => (
               <KanbanColumn

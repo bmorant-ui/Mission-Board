@@ -6,7 +6,7 @@ import { volunteerSchema, type VolunteerFormValues } from '@/lib/validations/vol
 import { useVolunteers, useCreateVolunteer, useUpdateVolunteer, useDeleteVolunteer, useAssignVolunteer } from '@/lib/queries/volunteers'
 import { useProjects } from '@/lib/queries/projects'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { SkeletonGrid } from '@/components/shared/Skeleton'
 import { TagInput } from '@/components/shared/TagInput'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Users, Plus, MoreHorizontal, Pencil, Trash2, Loader2, UserPlus } from 'lucide-react'
+import { Users, Plus, MoreHorizontal, Pencil, Trash2, Loader2, UserPlus, Search } from 'lucide-react'
 import { VOLUNTEER_STATUS_COLORS, cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import type { Resolver } from 'react-hook-form'
@@ -37,6 +37,8 @@ export default function VolunteersPage() {
   const [assigning, setAssigning] = useState<Volunteer | null>(null)
   const [assignProjectId, setAssignProjectId] = useState<string | null>(null)
   const [assignRole, setAssignRole] = useState('')
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
 
   const { register, control, handleSubmit, reset, formState: { isSubmitting, errors } } = useForm<VolunteerFormValues>({
     resolver: zodResolver(volunteerSchema) as unknown as Resolver<VolunteerFormValues>,
@@ -102,7 +104,7 @@ export default function VolunteersPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
-  if (isLoading) return <LoadingSpinner />
+  if (isLoading) return <SkeletonGrid count={6} />
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -133,8 +135,39 @@ export default function VolunteersPage() {
           }
         />
       ) : (
+        <>
+          {/* Search + filter */}
+          <div className="flex gap-3 mb-4 flex-wrap">
+            <div className="relative flex-1 min-w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Search volunteers..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">All statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {volunteers?.map(v => (
+          {volunteers?.filter(v => {
+            const matchesSearch = !search ||
+              v.full_name.toLowerCase().includes(search.toLowerCase()) ||
+              (v.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
+              v.skills.some(s => s.toLowerCase().includes(search.toLowerCase()))
+            const matchesStatus = statusFilter === 'all' || v.status === statusFilter
+            return matchesSearch && matchesStatus
+          }).map(v => (
             <div key={v.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
@@ -191,6 +224,7 @@ export default function VolunteersPage() {
             </div>
           ))}
         </div>
+        </>
       )}
 
       {/* Create/Edit dialog */}

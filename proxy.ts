@@ -31,12 +31,17 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup')
+  const isPublicPage =
+    isAuthPage ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password')
   const isAppPage =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/projects') ||
     pathname.startsWith('/grants') ||
     pathname.startsWith('/volunteers') ||
-    pathname.startsWith('/calendar')
+    pathname.startsWith('/calendar') ||
+    pathname.startsWith('/settings')
 
   if (!user && isAppPage) {
     return NextResponse.redirect(new URL('/login', request.url))
@@ -45,6 +50,8 @@ export async function proxy(request: NextRequest) {
   if (user && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
+
+  void isPublicPage // used above to avoid redirect on public pages
 
   return supabaseResponse
 }

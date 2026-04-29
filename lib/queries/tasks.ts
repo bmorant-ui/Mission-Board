@@ -235,6 +235,22 @@ export function useDeleteColumn() {
   })
 }
 
+export function useAllTasksDue() {
+  return useQuery({
+    queryKey: ['tasks', 'all-due'],
+    queryFn: async () => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, title, due_date, priority, project_id, project:projects(id, name, color)')
+        .not('due_date', 'is', null)
+        .order('due_date', { ascending: true })
+      if (error) throw error
+      return data ?? []
+    },
+  })
+}
+
 export function useAddComment() {
   const queryClient = useQueryClient()
   return useMutation({

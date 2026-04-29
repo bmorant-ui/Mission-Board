@@ -3,8 +3,9 @@ import { useState } from 'react'
 import { useGrants, useDeleteGrant } from '@/lib/queries/grants'
 import { GrantForm } from '@/components/grants/GrantForm'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { SkeletonTable } from '@/components/shared/Skeleton'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -13,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { DollarSign, Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { DollarSign, Plus, MoreHorizontal, Pencil, Trash2, Search } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { formatDate, formatCurrency, daysUntil, GRANT_STATUS_COLORS } from '@/lib/utils'
 import type { Grant } from '@/types/app'
@@ -25,6 +26,8 @@ export default function GrantsPage() {
   const deleteGrant = useDeleteGrant()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Grant | null>(null)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
 
   async function handleDelete(id: string) {
     try {
@@ -44,13 +47,21 @@ export default function GrantsPage() {
     return null
   }
 
-  if (isLoading) return <LoadingSpinner />
+  if (isLoading) return <div className="p-6"><SkeletonTable rows={6} /></div>
 
   const totals = {
     requested: grants?.reduce((s, g) => s + (g.amount_requested ?? 0), 0) ?? 0,
     awarded: grants?.reduce((s, g) => s + (g.amount_awarded ?? 0), 0) ?? 0,
     awarded_count: grants?.filter(g => g.status === 'awarded').length ?? 0,
   }
+
+  const filtered = grants?.filter(g => {
+    const matchesSearch = !search ||
+      g.title.toLowerCase().includes(search.toLowerCase()) ||
+      g.funder_name.toLowerCase().includes(search.toLowerCase())
+    const matchesStatus = statusFilter === 'all' || g.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -64,6 +75,34 @@ export default function GrantsPage() {
           New Grant
         </Button>
       </div>
+
+      {/* Search + filter bar */}
+      {grants && grants.length > 0 && (
+        <div className="flex gap-3 mb-4 flex-wrap">
+          <div className="relative flex-1 min-w-48">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Search grants..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9 h-9 text-sm"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="all">All statuses</option>
+            <option value="research">Research</option>
+            <option value="drafting">Drafting</option>
+            <option value="submitted">Submitted</option>
+            <option value="awarded">Awarded</option>
+            <option value="rejected">Rejected</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+      )}
 
       {/* Summary cards */}
       {grants && grants.length > 0 && (
@@ -107,7 +146,10 @@ export default function GrantsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {grants?.map(grant => (
+              {filtered?.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">No grants match your search.</td></tr>
+              )}
+              {filtered?.map(grant => (
                 <tr key={grant.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900">{grant.title}</p>

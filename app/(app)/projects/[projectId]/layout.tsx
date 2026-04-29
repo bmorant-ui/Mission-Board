@@ -60,6 +60,13 @@ export default function ProjectLayout({
         </nav>
       </div>
 
+      {/* Mobile swipe hint — only on board tab */}
+      {pathname.endsWith('/board') && (
+        <div className="sm:hidden bg-indigo-50 border-b border-indigo-100 px-4 py-1.5 text-xs text-indigo-600 text-center flex-shrink-0">
+          ← Swipe to see all columns →
+        </div>
+      )}
+
       <div className="flex-1 overflow-hidden">
         {children}
       </div>

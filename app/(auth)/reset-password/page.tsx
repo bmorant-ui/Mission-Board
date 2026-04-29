@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,23 +9,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [password, setPassword]   = useState('')
+  const [confirm, setConfirm]     = useState('')
+  const [loading, setLoading]     = useState(false)
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (password !== confirm) {
+      toast.error('Passwords do not match')
+      return
+    }
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return
+    }
     setLoading(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.updateUser({ password })
+    setLoading(false)
     if (error) {
       toast.error(error.message)
-      setLoading(false)
     } else {
-      router.push('/dashboard')
-      router.refresh()
+      toast.success('Password updated — please sign in')
+      router.push('/login')
     }
   }
 
@@ -40,35 +47,17 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">MissionBoard</h1>
-          <p className="text-gray-500 text-sm mt-1">Project management for nonprofits</p>
         </div>
 
         <Card className="shadow-lg border-0">
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl">Welcome back</CardTitle>
-            <CardDescription>Sign in to your account to continue</CardDescription>
+            <CardTitle className="text-xl">Choose a new password</CardTitle>
+            <CardDescription>Must be at least 6 characters.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@organization.org"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link href="/forgot-password" className="text-xs text-indigo-600 hover:underline">
-                    Forgot password?
-                  </Link>
-                </div>
+                <Label htmlFor="password">New password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -76,20 +65,26 @@ export default function LoginPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  autoComplete="current-password"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm">Confirm new password</Label>
+                <Input
+                  id="confirm"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirm}
+                  onChange={e => setConfirm(e.target.value)}
+                  required
+                  autoComplete="new-password"
                 />
               </div>
               <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                Sign in
+                Update password
               </Button>
             </form>
-            <p className="text-center text-sm text-gray-500 mt-4">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="text-indigo-600 font-medium hover:underline">
-                Create one
-              </Link>
-            </p>
           </CardContent>
         </Card>
       </div>
