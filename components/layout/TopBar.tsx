@@ -4,6 +4,7 @@ import { Menu } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Sidebar } from './Sidebar'
+import { NotificationBell } from './NotificationBell'
 import { cn } from '@/lib/utils'
 
 const ROUTE_LABELS: Record<string, string> = {
@@ -40,6 +41,10 @@ export function TopBar() {
       </Sheet>
 
       <span className="text-sm font-medium text-gray-500">{getBreadcrumb(pathname)}</span>
+
+      <div className="ml-auto">
+        <NotificationBell />
+      </div>
     </header>
   )
 }
